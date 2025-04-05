@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGenius AI | Homework Solution Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f9fafb;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        .chat-bubble-user {
+            border-radius: 18px 18px 4px 18px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.2);
+        }
+        .chat-bubble-bot {
+            border-radius: 18px 18px 18px 4px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+        .camera-container {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #e5e7eb;
+        }
+        .scan-animation {
+            width: 80%;
+            height: 3px;
+            background: rgba(79, 70, 229, 0.8);
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.8);
+            animation: scan 2s infinite linear;
+            border-radius: 100px;
+            position: absolute;
+        }
+        @keyframes scan {
+            0% { top: 0; opacity: 1; }
+            90% { top: 100%; opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        .file-upload-container {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .file-upload-container:hover {
+            border-color: #4f46e5;
+            background: #f5f3ff;
+        }
+        .file-upload-container.dragover {
+            border-color: #4f46e5;
+            background: #f5f3ff;
+            transform: scale(1.02);
+        }
+        .preview-image {
+            max-height: 150px;
+            object-fit: contain;
+            border-radius: 8px;
+            display: none;
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 3s ease-in-out infinite;
+        }
+        .pulse-ring {
+            display: block;
+            border-radius: 50%;
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.33); opacity: 1; }
+            80%, 100% { opacity: 0; }
+        }
+        .auth-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .auth-input {
+            transition: all 0.3s ease;
+        }
+        .auth-input:focus {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Dark mode styles */
+        .dark {
+            background: #111827;
+            color: #f3f4f6;
+        }
+        .dark .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        .dark .chat-bubble-bot {
+            background: #1f2937;
+            border-color: #374151;
+            color: #f3f4f6;
+        }
+        .dark .file-upload-container {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        .dark .file-upload-container:hover {
+            background: #1e1b4b;
+            border-color: #6366f1;
+        }
+        .dark .camera-container {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        .dark .chat-bubble-user {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        .dark #userInput {
+            background: #1f2937;
+            border-color: #374151;
+            color: #f3f4f6;
+        }
+        .dark #userInput::placeholder {
+            color: #9ca3af;
+        }
+        .dark #userInput:focus {
+            background: #1f2937;
+            border-color: #6366f1;
+        }
+        .dark .tab-button {
+            background: #1f2937;
+            color: #9ca3af;
+        }
+        .dark .tab-button.active {
+            background: #111827;
+            color: #818cf8;
+        }
+        .dark .bg-white {
+            background: #1f2937 !important;
+        }
+        .dark .bg-gray-50 {
+            background: #111827 !important;
+        }
+        .dark .border-gray-100 {
+            border-color: #374151 !important;
+        }
+        .dark .text-gray-500 {
+            color: #9ca3af !important;
+        }
+        .dark .text-gray-700 {
+            color: #f3f4f6 !important;
+        }
+        .dark .text-gray-400 {
+            color: #9ca3af !important;
+        }
+        .dark .bg-indigo-50 {
+            background: #1e1b4b !important;
+        }
+        .dark .text-indigo-400 {
+            color: #818cf8 !important;
+        }
+        .dark .bg-gray-100 {
+            background: #1f2937 !important;
+        }
+        .dark .bg-indigo-100 {
+            background: #1e1b4b !important;
+            color: #a5b4fc !important;
+        }
+        .dark .auth-container {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        .dark .auth-input {
+            background: #111827;
+            border-color: #374151;
+            color: #f3f4f6;
+        }
+        .dark .auth-input:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen dark:bg-gray-900">
+    <!-- Auth Overlay (shown when not logged in) -->
+    <div id="authOverlay" class="fixed inset-0 w-full h-full bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="auth-container bg-white dark:bg-gray-800 dark:border dark:border-gray-700">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                    <i class="fas fa-brain text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Welcome to StudyGenius AI</h2>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">Please sign in to continue</p>
+            </div>
+            
+            <div id="loginForm">
+                <div class="mb-4">
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input type="email" id="loginEmail" class="auth-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div class="mb-6">
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                    <input type="password" id="loginPassword" class="auth-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <button id="loginBtn" class="w-full gradient-bg text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all shadow-md mb-4">
+                    Sign In
+                </button>
+                <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+                    Don't have an account? 
+                    <button id="showRegisterBtn" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">Create one</button>
+                </p>
+            </div>
+            
+            <div id="registerForm" class="hidden">
+                <div class="mb-4">
+                    <label for="registerName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                    <input type="text" id="registerName" class="auth-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div class="mb-4">
+                    <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input type="email" id="registerEmail" class="auth-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div class="mb-6">
+                    <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password (min 6 characters)</label>
+                    <input type="password" id="registerPassword" class="auth-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <button id="registerBtn" class="w-full gradient-bg text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all shadow-md mb-4">
+                    Create Account
+                </button>
+                <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+                    Already have an account? 
+                    <button id="showLoginBtn" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">Sign in</button>
+                </p>
+            </div>
+            
+            <div id="authStatus" class="hidden mt-4 text-center text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Main App Content (shown when logged in) -->
+    <div id="appContent" class="hidden container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center mr-3 shadow-md">
+                    <i class="fas fa-brain text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">StudyGenius AI</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Welcome, <span id="userName">User</span></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-xs font-medium flex items-center dark:bg-indigo-900/30 dark:text-indigo-300">
+                    <i class="fas fa-bolt text-xs mr-1"></i> AI POWERED
+                </span>
+                <button id="themeToggle" class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all dark:bg-gray-700 dark:hover:bg-gray-600">
+                    <i class="fas fa-moon text-gray-500 dark:text-yellow-300" id="themeIcon"></i>
+                </button>
+                <button id="logoutBtn" class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all dark:bg-gray-700 dark:hover:bg-gray-600">
+                    <i class="fas fa-sign-out-alt text-gray-600 dark:text-gray-300"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="flex bg-gray-100 p-1 rounded-xl mb-6 dark:bg-gray-800">
+            <button id="cameraTab" class="tab-button flex-1 py-2 px-4 rounded-lg font-medium active dark:text-white">
+                <i class="fas fa-camera mr-2"></i> Scan Question
+            </button>
+            <button id="uploadTab" class="tab-button flex-1 py-2 px-4 rounded-lg font-medium dark:text-gray-300">
+                <i class="fas fa-upload mr-2"></i> Upload Image
+            </button>
+        </div>
+
+        <!-- Camera Section -->
+        <div id="cameraSection" class="camera-container bg-white mb-6 dark:bg-gray-800 dark:border-gray-700">
+            <video id="cameraPreview" class="w-full aspect-video object-cover" autoplay muted></video>
+            <div class="scan-animation hidden" id="scanAnimation"></div>
+            <div class="p-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-medium text-gray-700 flex items-center dark:text-gray-300">
+                        <i class="fas fa-search mr-2 text-indigo-500"></i> Point at your homework
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button id="toggleCamera" class="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all dark:bg-gray-700 dark:hover:bg-gray-600">
+                            <i class="fas fa-camera-rotate text-gray-600 dark:text-gray-300"></i>
+                        </button>
+                        <button id="captureBtn" class="flex items-center justify-center px-4 py-2 gradient-bg hover:opacity-90 text-white rounded-lg transition-all shadow-md">
+                            <i class="fas fa-camera mr-2"></i>
+                            Capture
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <canvas id="ocrCanvas" hidden></canvas>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="uploadSection" class="file-upload-container bg-white rounded-xl p-6 mb-6 hidden dark:bg-gray-800 dark:border-gray-700">
+            <div class="text-center">
+                <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-cloud-upload-alt text-white text-2xl"></i>
+                </div>
+                <h3 class="font-medium text-gray-700 mb-1 dark:text-gray-300">Upload Homework Image</h3>
+                <p class="text-gray-500 text-sm mb-4 dark:text-gray-400">Drag & drop or click to browse files</p>
+                
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <button id="uploadBtn" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-medium hover:bg-indigo-100 transition-all mb-4 dark:bg-indigo-900/30 dark:text-indigo-300">
+                    Select File
+                </button>
+                
+                <div class="mt-4">
+                    <img id="previewImage" class="preview-image mx-auto" alt="Preview">
+                </div>
+                
+                <button id="processUploadBtn" class="w-full gradient-bg text-white py-3 rounded-lg font-medium mt-4 hidden hover:opacity-90 transition-all shadow-md">
+                    <i class="fas fa-magic mr-2"></i> Solve This Problem
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+            <div class="p-4 border-b border-gray-100 flex items-center dark:border-gray-700">
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center mr-3 dark:bg-indigo-900/30">
+                    <i class="fas fa-comment-dots text-indigo-500 dark:text-indigo-400"></i>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700 dark:text-gray-300">AI Homework Assistant</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Powered by Gemini AI</p>
+                </div>
+            </div>
+            <div id="chatMessages" class="p-4 h-96 overflow-y-auto space-y-3 bg-gray-50 dark:bg-gray-900">
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                    <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4 dark:bg-indigo-900/30">
+                        <i class="fas fa-lightbulb text-indigo-400 text-3xl dark:text-indigo-500"></i>
+                    </div>
+                    <h4 class="font-medium text-gray-500 mb-1 dark:text-gray-400">How can I help today?</h4>
+                    <p class="text-center max-w-xs text-sm dark:text-gray-500">Scan or upload a homework problem to get step-by-step solutions</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-white dark:bg-gray-800 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <button id="voiceBtn" class="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all dark:bg-gray-700 dark:hover:bg-gray-600 relative">
+                        <i class="fas fa-microphone text-gray-600 dark:text-gray-300" id="voiceIcon"></i>
+                        <span id="voicePulse" class="pulse-ring absolute inset-0 border-2 border-indigo-500 rounded-full opacity-0 hidden"></span>
+                    </button>
+                    <input type="text" id="userInput" 
+                           class="flex-1 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500"
+                           placeholder="Or type your question here..."
+                           onkeypress="handleEnter(event)">
+                    <button id="sendBtn" class="w-12 h-12 rounded-xl gradient-bg hover:opacity-90 text-white flex items-center justify-center transition-all shadow-md">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 text-center dark:text-gray-500">Supports math, science, history, and language questions</p>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="hidden fixed inset-0 w-full h-full bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-xl max-w-xs w-full text-center animate-pulse dark:bg-gray-800">
+                <div class="flex justify-center mb-3">
+                    <div class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center dark:bg-indigo-900/30">
+                        <div class="relative">
+                            <i class="fas fa-spinner fa-spin text-indigo-500 text-2xl absolute dark:text-indigo-400"></i>
+                            <i class="fas fa-book-open text-indigo-300 text-xl dark:text-indigo-700"></i>
+                        </div>
+                    </div>
+                </div>
+                <h4 class="font-medium text-gray-700 mb-1 dark:text-gray-300">Analyzing Question</h4>
+                <p class="text-gray-500 text-sm dark:text-gray-400">Generating step-by-step solution...</p>
+                <div class="mt-3 h-1 w-full bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
+                    <div class="h-full bg-indigo-500 rounded-full animate-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Recognition Status -->
+        <div id="voiceStatus" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-50">
+            <i class="fas fa-microphone mr-2"></i>
+            <span id="voiceStatusText">Listening...</span>
+        </div>
+    </div>
+
+<script>
+// Configuration
+const KEYWORDS = ['solve', 'homework', 'question', 'math', 'calculate', 'problem', 'science', 'physics', 
+                 'chemistry', 'algebra', 'history', 'geography', 'language', 'english', 'essay','define','create'];
+const GEMINI_API_KEY = 'AIzaSyCUBIN4FpO77vdFM4UpyAu5Py2v1t3zheM'; // Replace with your actual API key
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// Mock database for users (in a real app, this would be a backend API)
+const usersDB = {
+    "test@example.com": {
+        name: "Test User",
+        email: "test@example.com",
+        password: "password123"
+    }
+};
+
+let currentStream = null;
+let isTyping = false;
+let currentTab = 'camera';
+let recognition = null;
+let isListening = false;
+let currentUser = null;
+
+// DOM Elements
+const video = document.getElementById('cameraPreview');
+const captureBtn = document.getElementById('captureBtn');
+const toggleCamera = document.getElementById('toggleCamera');
+const chatMessages = document.getElementById('chatMessages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const loading = document.getElementById('loading');
+const scanAnimation = document.getElementById('scanAnimation');
+const cameraTab = document.getElementById('cameraTab');
+const uploadTab = document.getElementById('uploadTab');
+const cameraSection = document.getElementById('cameraSection');
+const uploadSection = document.getElementById('uploadSection');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const previewImage = document.getElementById('previewImage');
+const processUploadBtn = document.getElementById('processUploadBtn');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const voiceBtn = document.getElementById('voiceBtn');
+const voiceIcon = document.getElementById('voiceIcon');
+const voicePulse = document.getElementById('voicePulse');
+const voiceStatus = document.getElementById('voiceStatus');
+const voiceStatusText = document.getElementById('voiceStatusText');
+const authOverlay = document.getElementById('authOverlay');
+const appContent = document.getElementById('appContent');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const loginBtn = document.getElementById('loginBtn');
+const registerName = document.getElementById('registerName');
+const registerEmail = document.getElementById('registerEmail');
+const registerPassword = document.getElementById('registerPassword');
+const registerBtn = document.getElementById('registerBtn');
+const showRegisterBtn = document.getElementById('showRegisterBtn');
+const showLoginBtn = document.getElementById('showLoginBtn');
+const authStatus = document.getElementById('authStatus');
+const logoutBtn = document.getElementById('logoutBtn');
+const userName = document.getElementById('userName');
+
+// Initialize Tesseract OCR
+let worker;
+async function initializeTesseract() {
+    try {
+        worker = await Tesseract.createWorker();
+        console.log("Tesseract initialized successfully");
+    } catch (error) {
+        console.error("Tesseract initialization failed:", error);
+        showError("OCR Error", "Text recognition failed to initialize. Please refresh the page.");
+    }
+}
+
+// Initialize Speech Recognition
+function initializeSpeechRecognition() {
+    try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            throw new Error("Speech recognition not supported in this browser");
+        }
+        
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        recognition.onstart = () => {
+            isListening = true;
+            voiceIcon.classList.replace('fa-microphone', 'fa-microphone-slash');
+            voicePulse.classList.remove('hidden');
+            voicePulse.classList.remove('opacity-0');
+            voiceStatus.classList.remove('hidden');
+            voiceStatusText.textContent = "Listening...";
+        };
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            userInput.value = transcript;
+            handleTextInput();
+        };
+        
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+            stopVoiceRecognition();
+            showError("Voice Error", "Could not recognize speech. Please try again.");
+        };
+        
+        recognition.onend = () => {
+            if (isListening) {
+                stopVoiceRecognition();
+            }
+        };
+        
+    } catch (error) {
+        console.error("Speech recognition initialization failed:", error);
+        voiceBtn.disabled = true;
+        voiceBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function startVoiceRecognition() {
+    if (!recognition) {
+        showError("Voice Error", "Speech recognition not available in your browser");
+        return;
+    }
+    
+    try {
+        recognition.start();
+    } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        showError("Voice Error", "Could not start microphone. Please check permissions.");
+    }
+}
+
+function stopVoiceRecognition() {
+    isListening = false;
+    voiceIcon.classList.replace('fa-microphone-slash', 'fa-microphone');
+    voicePulse.classList.add('opacity-0');
+    setTimeout(() => voicePulse.classList.add('hidden'), 300);
+    voiceStatus.classList.add('hidden');
+}
+
+// Theme toggle functionality
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.classList.add('dark');
+        themeIcon.classList.replace('fa-moon', 'fa-sun');
+    }
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle('dark');
+    const isDark = document.documentElement.classList.contains('dark');
+    
+    if (isDark) {
+        themeIcon.classList.replace('fa-moon', 'fa-sun');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        themeIcon.classList.replace('fa-sun', 'fa-moon');
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+// Authentication Functions
+function showAuthStatus(message, isError = false) {
+    authStatus.textContent = message;
+    authStatus.className = isError ? 
+        'mt-4 text-center text-sm text-red-500' : 
+        'mt-4 text-center text-sm text-green-500';
+    authStatus.classList.remove('hidden');
+    
+    setTimeout(() => {
+        authStatus.classList.add('hidden');
+    }, 3000);
+}
+
+function loginUser(email, password) {
+    // In a real app, this would be an API call to your backend
+    if (!usersDB[email]) {
+        showAuthStatus("User not found. Please register.", true);
+        return false;
+    }
+    
+    if (usersDB[email].password !== password) {
+        showAuthStatus("Incorrect password. Please try again.", true);
+        return false;
+    }
+    
+    currentUser = usersDB[email];
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    return true;
+}
+
+function registerUser(name, email, password) {
+    // In a real app, this would be an API call to your backend
+    if (usersDB[email]) {
+        showAuthStatus("Email already registered. Please login.", true);
+        return false;
+    }
+    
+    if (password.length < 6) {
+        showAuthStatus("Password must be at least 6 characters", true);
+        return false;
+    }
+    
+    usersDB[email] = { name, email, password };
+    currentUser = usersDB[email];
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    return true;
+}
+
+function logoutUser() {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    showLoginScreen();
+}
+
+function checkAuth() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showAppContent();
+    } else {
+        showLoginScreen();
+    }
+}
+
+function showLoginScreen() {
+    authOverlay.classList.remove('hidden');
+    appContent.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+    registerForm.classList.add('hidden');
+    loginEmail.value = '';
+    loginPassword.value = '';
+    registerName.value = '';
+    registerEmail.value = '';
+    registerPassword.value = '';
+    authStatus.classList.add('hidden');
+}
+
+function showAppContent() {
+    authOverlay.classList.add('hidden');
+    appContent.classList.remove('hidden');
+    userName.textContent = currentUser ? currentUser.name : 'User';
+}
+
+// Initialize the app
+async function initApp() {
+    initializeTheme();
+    checkAuth();
+    await initializeTesseract();
+    initializeSpeechRecognition();
+    setupEventListeners();
+    setupFileUpload();
+    switchTab('camera');
+    try {
+        await initCamera();
+    } catch (error) {
+        console.error("Camera initialization failed:", error);
+        showError("Camera Error", "Could not access camera. Using upload option instead.");
+        switchTab('upload');
+    }
+}
+
+function setupEventListeners() {
+    // Tab switching
+    cameraTab.addEventListener('click', () => switchTab('camera'));
+    uploadTab.addEventListener('click', () => switchTab('upload'));
+    
+    // Camera capture
+    captureBtn.addEventListener('click', captureQuestion);
+    
+    // Text input
+    sendBtn.addEventListener('click', handleTextInput);
+    
+    // Camera toggle
+    toggleCamera.addEventListener('click', toggleCameraView);
+    
+    // Theme toggle
+    themeToggle.addEventListener('click', toggleTheme);
+    
+    // Voice input
+    voiceBtn.addEventListener('click', () => {
+        if (isListening) {
+            stopVoiceRecognition();
+            if (recognition) recognition.stop();
+        } else {
+            startVoiceRecognition();
+        }
+    });
+    
+    // Auth form toggles
+    showRegisterBtn.addEventListener('click', () => {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+        authStatus.classList.add('hidden');
+    });
+    
+    showLoginBtn.addEventListener('click', () => {
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        authStatus.classList.add('hidden');
+    });
+    
+    // Login button
+    loginBtn.addEventListener('click', () => {
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value.trim();
+        
+        if (!email || !password) {
+            showAuthStatus("Please fill in all fields", true);
+            return;
+        }
+        
+        if (loginUser(email, password)) {
+            showAppContent();
+        }
+    });
+    
+    // Register button
+    registerBtn.addEventListener('click', () => {
+        const name = registerName.value.trim();
+        const email = registerEmail.value.trim();
+        const password = registerPassword.value.trim();
+        
+        if (!name || !email || !password) {
+            showAuthStatus("Please fill in all fields", true);
+            return;
+        }
+        
+        if (registerUser(name, email, password)) {
+            showAppContent();
+        }
+    });
+    
+    // Logout button
+    logoutBtn.addEventListener('click', logoutUser);
+    
+    // Handle Enter key in auth forms
+    loginPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loginBtn.click();
+    });
+    
+    registerPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') registerBtn.click();
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    if (tab === 'camera') {
+        cameraTab.classList.add('active');
+        uploadTab.classList.remove('active');
+        cameraSection.classList.remove('hidden');
+        uploadSection.classList.add('hidden');
+    } else {
+        cameraTab.classList.remove('active');
+        uploadTab.classList.add('active');
+        cameraSection.classList.add('hidden');
+        uploadSection.classList.remove('hidden');
+    }
+}
+
+// Camera Setup
+async function initCamera() {
+    try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Camera API not supported");
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+    } catch (error) {
+        console.error("Camera initialization error:", error);
+        throw error;
+    }
+}
+
+// Capture Question from Camera
+async function captureQuestion() {
+    if (!video.srcObject) {
+        showError("Camera Not Ready", "Please wait for camera to initialize");
+        return;
+    }
+
+    scanAnimation.classList.remove('hidden');
+    
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        showLoading(true);
+        const { data: { text } } = await worker.recognize(canvas);
+        
+        if (text.trim().length > 3) {
+            await handleQuestion(text);
+        } else {
+            showError('Scan Failed', 'Could not detect text. Try again with better lighting');
+        }
+    } catch (error) {
+        console.error("Capture error:", error);
+        showError('Processing Error', 'Failed to analyze image');
+    } finally {
+        scanAnimation.classList.add('hidden');
+        showLoading(false);
+    }
+}
+
+// File Upload Handling
+function setupFileUpload() {
+    // Click handler for upload button
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    
+    // File input change handler
+    fileInput.addEventListener('change', handleFileSelect);
+    
+    // Drag and drop handlers
+    uploadSection.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadSection.classList.add('dragover');
+    });
+    
+    uploadSection.addEventListener('dragleave', () => {
+        uploadSection.classList.remove('dragover');
+    });
+    
+    uploadSection.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadSection.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect({ target: fileInput });
+        }
+    });
+    
+    // Process uploaded image
+    processUploadBtn.addEventListener('click', processUploadedImage);
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.match('image.*')) {
+        showError('Invalid File', 'Please upload an image file (JPEG, PNG)');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        previewImage.src = e.target.result;
+        previewImage.style.display = 'block';
+        processUploadBtn.classList.remove('hidden');
+        uploadBtn.textContent = 'Change File';
+    };
+    reader.readAsDataURL(file);
+}
+
+async function processUploadedImage() {
+    if (!fileInput.files.length) return;
+    
+    showLoading(true);
+    try {
+        const { data: { text } } = await worker.recognize(fileInput.files[0]);
+        if (text.trim().length > 3) {
+            await handleQuestion(text);
+        } else {
+            showError('Analysis Failed', 'Could not detect text in the image. Try a clearer photo');
+        }
+    } catch (error) {
+        console.error("Upload processing error:", error);
+        showError('Processing Error', 'Failed to analyze image');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Toggle between front/back camera
+async function toggleCameraView() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+    }
+    try {
+        const newFacingMode = video.srcObject?.getVideoTracks()[0]?.getSettings().facingMode === 'user' 
+            ? 'environment' 
+            : 'user';
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: newFacingMode } 
+        });
+        video.srcObject = stream;
+        currentStream = stream;
+    } catch (error) {
+        console.error("Camera toggle error:", error);
+        showError("Camera Error", "Could not switch camera view");
+    }
+}
+
+// Handle Questions from any source
+async function handleQuestion(question) {
+    addMessage(question, 'user');
+    
+    // Check for keywords
+    const hasKeyword = KEYWORDS.some(keyword => 
+        question.toLowerCase().includes(keyword)
+    );
+    
+    if (!hasKeyword) {
+        showTypingIndicator();
+        setTimeout(() => {
+            removeTypingIndicator();
+            addMessage("This appears to be outside my homework help scope. I specialize in academic questions about:\n\n• Math & Science\n• History & Geography\n• Language & Literature\n\nTry rephrasing or ask a study-related question.", 'bot');
+        }, 1500);
+        return;
+    }
+
+    // Generate answer from Gemini API
+    showTypingIndicator();
+    try {
+        const answer = await getGeminiResponse(question);
+        removeTypingIndicator();
+        addMessage(answer, 'bot');
+    } catch (error) {
+        console.error("Error getting Gemini response:", error);
+        removeTypingIndicator();
+        showError("API Error", "Failed to get response from AI. Please try again later.");
+    }
+}
+
+// Get response from Gemini API
+async function getGeminiResponse(question) {
+    showLoading(true);
+    
+    try {
+        const prompt = `You are StudyGenius AI, a helpful homework assistant. Provide a detailed, step-by-step solution to the following academic question in clear, easy-to-understand language. Format your response with appropriate headings, bullet points, and numbered steps where applicable. If the question is unclear, ask for clarification.
+
+Question: ${question}
+
+Answer:`;
+        
+        const response = await fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error?.message || "Failed to get response from Gemini API");
+        }
+        
+        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+                      "I couldn't generate a response for this question. Please try again or rephrase your question.";
+        
+        return formatGeminiResponse(answer);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Format Gemini response for better display
+function formatGeminiResponse(text) {
+    // Convert markdown-like formatting to HTML
+    let formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
+        .replace(/\*(.*?)\*/g, '<em>$1</em>') // italic
+        .replace(/^#\s(.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 dark:text-white">$1</h3>') // h1
+        .replace(/^##\s(.*$)/gm, '<h4 class="font-semibold mt-3 mb-1 dark:text-white">$1</h4>') // h2
+        .replace(/^-\s(.*$)/gm, '<li class="ml-4 dark:text-gray-300">$1</li>') // unordered list
+        .replace(/^\d+\.\s(.*$)/gm, '<li class="ml-4 dark:text-gray-300">$1</li>') // ordered list
+        .replace(/\n/g, '<br>'); // new lines
+    
+    // Wrap lists in proper HTML tags
+    formattedText = formattedText.replace(/<li class="ml-4 dark:text-gray-300">.*?<\/li>/g, (match) => {
+        return `<ul class="list-disc pl-5 space-y-1">${match}</ul>`;
+    });
+    
+    // Handle code blocks if present
+    formattedText = formattedText.replace(/```(\w*)\n([\s\S]*?)\n```/g, 
+        '<pre class="bg-gray-100 p-3 rounded-md overflow-x-auto my-2 dark:bg-gray-700 dark:text-gray-300"><code>$2</code></pre>');
+    
+    return formattedText;
+}
+
+// Chat Functions
+function addMessage(text, sender) {
+    if (isTyping && sender === 'bot') return;
+    
+    // Clear initial state if this is the first message
+    if (chatMessages.children.length === 1 && 
+        chatMessages.children[0].classList.contains('flex-col')) {
+        chatMessages.innerHTML = '';
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' ? 
+        'chat-bubble-user max-w-[85%] px-4 py-3' : 
+        'chat-bubble-bot max-w-[85%] px-4 py-3';
+    
+    // If it's a bot message and contains HTML tags, use innerHTML
+    if (sender === 'bot' && /<\/?[a-z][\s\S]*>/i.test(text)) {
+        bubble.innerHTML = text;
+    } else {
+        bubble.textContent = text;
+    }
+    
+    messageDiv.appendChild(bubble);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function showTypingIndicator() {
+    if (isTyping) return;
+    isTyping = true;
+    
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'flex justify-start mb-3';
+    typingDiv.id = 'typingIndicator';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble-bot px-4 py-3';
+    
+    bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    typingDiv.appendChild(bubble);
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    isTyping = false;
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+}
+
+// Text Input Handling
+async function handleTextInput() {
+    const question = userInput.value.trim();
+    if (!question) return;
+    
+    userInput.value = '';
+    await handleQuestion(question);
+}
+
+function handleEnter(e) {
+    if (e.key === 'Enter') handleTextInput();
+}
+
+// Utility Functions
+function showLoading(show) {
+    loading.style.display = show ? 'flex' : 'none';
+}
+
+function showError(title, message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg dark:bg-red-900/30 dark:border-red-700';
+    errorDiv.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0 pt-0.5">
+                <i class="fas fa-exclamation-circle text-red-500 dark:text-red-400"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800 dark:text-red-200">${title}</h3>
+                <div class="mt-1 text-sm text-red-700 dark:text-red-300">${message}</div>
+            </div>
+        </div>
+    `;
+    chatMessages.appendChild(errorDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Initialize when page loads
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
